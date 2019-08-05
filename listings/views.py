@@ -35,6 +35,257 @@ def test(request,username):
     return HttpResponse(image_data, content_type="image/png")
 
 
+def ZomatoCollect(request):
+    lat = 8.565128
+    long = 76.8504593
+    print(lat,long)
+    ZomatoRestaurantImport(lat,long)
+    print("ZOMATO OVER")
+    return home(request)
+
+def GoogleEstablishmentsCollection(request):
+    lat = 9.6013493
+    long = 76.5141374
+    print(lat,long)
+    key = config['GoogleAPI']['api_key']
+    radius = 15000
+    type = 'restaurant'
+    keyword = ''
+
+    places_details_api_count = 0
+
+    query_string_structure = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{long}&radius={radius}&type={type}&keyword={keyword}&key={api_key}"
+    query_string = query_string_structure.format(lat=lat, long=long, radius=radius, type=type, keyword=keyword,
+                                                 api_key=key)
+    response = requests.get(query_string)
+    json_data = json.loads(response.text)
+
+    next_page_token=""
+    next_page_flag=1
+    first_page_flag = 1
+
+    try:
+        while(next_page_flag):
+            if (first_page_flag == 1):
+                first_page_flag = 0
+                if ('next_page_token' in json_data):
+                    next_page_token = json_data["next_page_token"]
+                query_result = json_data["results"]
+                for item in query_result:
+                    num_results = GoogleRestaurants.objects.filter(google_place_id=str(item["place_id"])).count()
+                    if (num_results == 0):
+                        place_id = str(item["place_id"])
+
+                        name = str(item["name"])
+                        print(name)
+                        if 'price_level' in item:
+                            price_level = str(item["price_level"])
+                        else:
+                            price_level = 0.0
+
+                        if 'reference' in item:
+                            reference = str(item["reference"])
+                        else:
+                            reference = 0
+
+                        if 'types' in item:
+                            types = str(item["types"])
+                        else:
+                            types = 0
+
+                        if 'rating' in item:
+                            rating = str(item["rating"])
+                        else:
+                            rating = 0
+
+                        if 'user_ratings_total' in item:
+                            user_ratings_total = str(item["user_ratings_total"])
+                        else:
+                            user_ratings_total = 0
+
+                        if 'vicinity' in item:
+                            vicinity = str(item["vicinity"])
+                        else:
+                            vicinity = 0
+
+                        lng = str(item["geometry"]["location"]["lng"])
+                        lat = str(item["geometry"]["location"]["lat"])
+
+                        if 'photos' in item:
+                            photo_reference_string = (item["photos"])
+                            for item_photo in photo_reference_string:
+                                photo_reference = item_photo["photo_reference"]
+                        else:
+                            photo_reference = "Blank"
+
+                        entry = GoogleRestaurants(
+                            name=name,
+                            reference=reference,
+                            types=types,
+                            google_place_id=place_id,
+                            rating=rating,
+                            user_ratings_total=user_ratings_total,
+                            price_level=price_level,
+                            contact=-1,
+                            website=-1,
+                            vicinity=vicinity,
+                            lat=lat,
+                            long=lng,
+                            photo_url=photo_reference)
+                        entry.save()
+                        print(name, " is saved @ ", entry.id)
+
+            else:
+                query_string_structure = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken={next_page_token}&key={api_key}"
+                query_string = query_string_structure.format(next_page_token=next_page_token, api_key=key)
+                time.sleep(30)
+                print("Next Page")
+                response = requests.get(query_string)
+                places_details_api_count = places_details_api_count + 1
+                json_data = json.loads(response.text)
+                query_result = json_data["results"]
+
+                for item in query_result:
+                    num_results = GoogleRestaurants.objects.filter(google_place_id=str(item["place_id"])).count()
+                    if (num_results == 0):
+
+                        place_id = str(item["place_id"])
+                        name = str(item["name"])
+                        print(name)
+                        if 'price_level' in item:
+                            price_level = str(item["price_level"])
+                        else:
+                            price_level = 0.0
+
+                        if 'reference' in item:
+                            reference = str(item["reference"])
+                        else:
+                            reference = 0
+
+                        if 'types' in item:
+                            types = str(item["types"])
+                        else:
+                            types = 0
+
+                        if 'rating' in item:
+                            rating = str(item["rating"])
+                        else:
+                            rating = 0
+
+                        if 'user_ratings_total' in item:
+                            user_ratings_total = str(item["user_ratings_total"])
+                        else:
+                            user_ratings_total = 0
+
+                        if 'vicinity' in item:
+                            vicinity = str(item["vicinity"])
+                        else:
+                            vicinity = 0
+
+                        lng = str(item["geometry"]["location"]["lng"])
+                        lat = str(item["geometry"]["location"]["lat"])
+
+                        if 'photos' in item:
+                            photo_reference_string = (item["photos"])
+                            for item_photo in photo_reference_string:
+                                photo_reference = item_photo["photo_reference"]
+                        else:
+                            photo_reference = "Blank"
+
+
+                        entry = GoogleRestaurants(
+                            name=name,
+                            reference=reference,
+                            types=types,
+                            google_place_id=place_id,
+                            rating=rating,
+                            user_ratings_total=user_ratings_total,
+                            price_level=price_level,
+                            contact= -1,
+                            website = -1,
+                            vicinity=vicinity,
+                            lat = lat,
+                            long = lng,
+                            photo_url = photo_reference)
+
+                        entry.save()
+                        print(name, " is saved @ ", entry.id)
+                        if ('next_page_token' in json_data):
+                            next_page_token = json_data["next_page_token"]
+                        else:
+                            next_page_flag = 0
+
+    except Exception as e:
+        print("error",e)
+
+
+    return home(request)
+
+def GooglePlaceDetailsCollection(request):
+    key = config['GoogleAPI']['api_key']
+    place_details_query = "https://maps.googleapis.com/maps/api/place/details/json?placeid={place_id}&key={api_key}"
+    places = GoogleRestaurants.objects.filter(contact = -1 , website = -1)
+    for place_item in places:
+        place_id = place_item.google_place_id
+        place_details_query_string = place_details_query.format(place_id=place_id, api_key=key)
+
+        try:
+            time.sleep(25)
+            place_details_response = requests.get(place_details_query_string, stream=True)
+            place_details_json_data = json.loads(place_details_response.text)
+            place_details_json_data_result = place_details_json_data["result"]
+
+            if 'international_phone_number' in place_details_json_data_result:
+                international_phone_number = str(place_details_json_data_result["international_phone_number"])
+            else:
+                international_phone_number = 0
+
+            if 'website' in place_details_json_data_result:
+                website = str(place_details_json_data_result["website"])
+            else:
+                website = 0
+
+            places.objects.filter(google_place_id=place_id).update(contact=international_phone_number, website=website)
+            places.save()
+        except Exception as e:
+
+            print("Place Details API failed!", e)
+            international_phone_number = 0
+            website = 0
+
+    return home(request)
+
+
+    # # PLACE DETAILS API
+    # place_details_query = "https://maps.googleapis.com/maps/api/place/details/json?placeid={place_id}&key={api_key}"
+    # place_details_query_string = place_details_query.format(place_id=place_id, api_key=key)
+    # place_details_response = requests.get(place_details_query_string, stream=True)
+    # try:
+    #     place_details_response = place_details_api(place_id)
+    #     place_details_json_data = json.loads(place_details_response.text)
+    #     place_details_json_data_result = place_details_json_data["result"]
+    #
+    #     if 'international_phone_number' in place_details_json_data_result:
+    #         international_phone_number = str(place_details_json_data_result["international_phone_number"])
+    #     else:
+    #         international_phone_number = 0
+    #
+    #     if 'website' in place_details_json_data_result:
+    #         website = str(place_details_json_data_result["website"])
+    #     else:
+    #         website = 0
+    #
+    # except Exception as e:
+    #
+    #     print("Place Details API failed!", e)
+    #     international_phone_number = 0
+    #     website = 0
+
+def GooglePlacePhotoCollection(request):
+
+    pass
+
+
 
 def home(request):
 
@@ -106,6 +357,7 @@ def home(request):
     return render(request, 'index.html',{'restaurants_list':zomato_restaurants_list})
 
 def collection(request):
+
     lat = 8.565128
     long = 76.8504593
     print(lat,long)
@@ -223,7 +475,7 @@ def GoogleRestaurantImport(lat,long):
                         # PLACE DETAILS API
                         time.sleep(30)
                         try:
-                            place_details_response = place_details_api(place_id)
+                            # place_details_response = place_details_api(place_id)
                             place_details_json_data = json.loads(place_details_response.text)
                             place_details_json_data_result = place_details_json_data["result"]
 
@@ -376,12 +628,4 @@ def GoogleRestaurantImport(lat,long):
         print("error",e)
 
 
-def place_details_api(place_id):
-    key = config['GoogleAPI']['api_key']
-    place_details_query = "https://maps.googleapis.com/maps/api/place/details/json?placeid={place_id}&key={api_key}"
-    place_details_query_string = place_details_query.format(place_id=place_id, api_key=key)
-    place_details_response = requests.get(place_details_query_string, stream=True)
 
-    print("API String: ",place_details_query_string)
-
-    return place_details_response
