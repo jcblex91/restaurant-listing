@@ -126,12 +126,13 @@ def GoogleEstablishmentsCollection(request):
                             rating=rating,
                             user_ratings_total=user_ratings_total,
                             price_level=price_level,
-                            contact=-1,
-                            website=-1,
+                            contact= -1,
+                            website = -1,
                             vicinity=vicinity,
-                            lat=lat,
-                            long=lng,
-                            photo_url=photo_reference)
+                            lat = lat,
+                            long = lng,
+                            photo_ref = photo_reference,
+                            photo_url = -1)
                         entry.save()
                         print(name, " is saved @ ", entry.id)
 
@@ -206,7 +207,8 @@ def GoogleEstablishmentsCollection(request):
                             vicinity=vicinity,
                             lat = lat,
                             long = lng,
-                            photo_url = photo_reference)
+                            photo_ref = photo_reference,
+                            photo_url = -1)
 
                         entry.save()
                         print(name, " is saved @ ", entry.id)
@@ -265,8 +267,43 @@ def GooglePlaceDetailsCollection(request):
     return home(request)
 
 def GooglePlacePhotoCollection(request):
+    key = config['GoogleAPI']['api_key']
+    places = GoogleRestaurants.objects.filter(photo_url = -1)[:2]
 
-    pass
+    photo_details_query = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={api_key}"
+    save_path = settings.MEDIA_ROOT + '/google_place_images'
+
+    for place_item in places:
+        pk = place_item.id
+        place_id = place_item.google_place_id
+        file_name = str(place_id)
+
+        photo_reference = place_item.photo_ref
+        photo_details_query_string = photo_details_query.format(photo_ref=photo_reference,
+                                                                api_key=key)
+
+        try:
+            file_save_path = str(save_path + '/' + file_name)
+            photo_details_response = requests.get(photo_details_query_string, stream=True)
+            open(file_save_path, 'wb').write(photo_details_response.content)
+
+            print(pk, " - ", place_item.name)
+
+            obj = GoogleRestaurants.objects.get(pk=pk)
+            obj.photo_url = file_save_path
+            obj.save()
+
+            print(place_item.name, "is updated")
+        except Exception as e:
+
+            print("Photo Details API failed!", e)
+            international_phone_number = 0
+            website = 0
+
+        print("Waiting...")
+        time.sleep(25)
+
+    return home(request)
 
 
 

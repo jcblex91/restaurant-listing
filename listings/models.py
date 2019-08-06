@@ -29,4 +29,5 @@ class GoogleRestaurants(models.Model):
     website = models.URLField(max_length=250,default=None)
     lat = models.DecimalField(max_digits=9, decimal_places=6, default=None)
     long = models.DecimalField(max_digits=9, decimal_places=6, default=None)
+    photo_ref = models.TextField(default=None)
     photo_url = models.TextField(default=None)
