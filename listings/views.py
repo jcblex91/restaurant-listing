@@ -224,13 +224,14 @@ def GoogleEstablishmentsCollection(request):
 def GooglePlaceDetailsCollection(request):
     key = config['GoogleAPI']['api_key']
     place_details_query = "https://maps.googleapis.com/maps/api/place/details/json?placeid={place_id}&key={api_key}"
-    places = GoogleRestaurants.objects.filter(contact = -1 , website = -1)
+    places = GoogleRestaurants.objects.filter(contact = -1 , website = -1)[:5]
     for place_item in places:
+        pk = place_item.id
         place_id = place_item.google_place_id
         place_details_query_string = place_details_query.format(place_id=place_id, api_key=key)
+        print(pk," - ",place_item.name," - ",place_id)
 
         try:
-            time.sleep(25)
             place_details_response = requests.get(place_details_query_string, stream=True)
             place_details_json_data = json.loads(place_details_response.text)
             place_details_json_data_result = place_details_json_data["result"]
@@ -245,41 +246,23 @@ def GooglePlaceDetailsCollection(request):
             else:
                 website = 0
 
-            places.objects.filter(google_place_id=place_id).update(contact=international_phone_number, website=website)
-            places.save()
+            obj = GoogleRestaurants.objects.get(pk=pk)
+            obj.contact = international_phone_number
+            obj.website = website
+            obj.save()
+
+
+            print(place_item.name, "is updated")
         except Exception as e:
 
             print("Place Details API failed!", e)
             international_phone_number = 0
             website = 0
 
+        print("Waiting...")
+        time.sleep(25)
+
     return home(request)
-
-
-    # # PLACE DETAILS API
-    # place_details_query = "https://maps.googleapis.com/maps/api/place/details/json?placeid={place_id}&key={api_key}"
-    # place_details_query_string = place_details_query.format(place_id=place_id, api_key=key)
-    # place_details_response = requests.get(place_details_query_string, stream=True)
-    # try:
-    #     place_details_response = place_details_api(place_id)
-    #     place_details_json_data = json.loads(place_details_response.text)
-    #     place_details_json_data_result = place_details_json_data["result"]
-    #
-    #     if 'international_phone_number' in place_details_json_data_result:
-    #         international_phone_number = str(place_details_json_data_result["international_phone_number"])
-    #     else:
-    #         international_phone_number = 0
-    #
-    #     if 'website' in place_details_json_data_result:
-    #         website = str(place_details_json_data_result["website"])
-    #     else:
-    #         website = 0
-    #
-    # except Exception as e:
-    #
-    #     print("Place Details API failed!", e)
-    #     international_phone_number = 0
-    #     website = 0
 
 def GooglePlacePhotoCollection(request):
 
