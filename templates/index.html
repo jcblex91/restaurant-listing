@@ -40,41 +40,46 @@
                 {% for item in restaurants_list %}
                 <div class="col-md-4 featured-responsive">
                     <div class="featured-place-wrap">
-                        <a href="detail.html">
-                            <img src="{{item.featured_image}}" class="img-fluid" alt="#">
-                            <span class="featured-rating-orange">{{item.aggregate_rating}}</span>
+                            <img src="{{item.image}}" class="img-fluid" alt="#">
+                            <span class="featured-rating-orange">{{item.rating}}</span>
                             <div class="featured-title-box">
                                 <h6>{{item.name}}</h6>
-                                <p>Restaurant </p> <span>• </span>
-                                <p>3 Reviews</p> <span> • </span>
-                                {% if item.average_cost_for_two >= 800 %}
+                                {% if item.open_now == 1 %}
+                                <p>Open</p>
+                                {% elif item.open_now == 0%}
+                                <p>Closed</p>
+                                {% else %}
+                                <p>Not Available</p>
+                                {% endif %}
+                                <span>• </span>
+                                <p>{{item.open_now}}</p> <span> • </span>
+                                {% if item.price_level >= 4 %}
                                     <p><span>$$$$</span>$</p>
-                                {% elif item.average_cost_for_two >= 600 %}
+                                {% elif item.price_level >= 3 %}
                                     <p><span>$$$</span>$$</p>
-                                {% elif item.average_cost_for_two >= 400 %}
+                                {% elif item.price_level >= 2 %}
                                     <p><span>$$</span>$$$</p>
                                 {% else %}
                                     <p><span>$</span>$$$$</p>
                                 {% endif %}
                                 <ul>
                                     <li><span class="icon-location-pin"></span>
-                                        <p>{{item.addr}}</p>
+                                        <p><a href="{{item.place_url}}" target="_blank">{{item.vicinity}}</a></p>
                                     </li>
                                     <li><span class="icon-screen-smartphone"></span>
-                                        <p>+44 20 7336 8898</p>
+                                        <p>{{item.contact}}</p>
                                     </li>
                                     <li><span class="icon-link"></span>
-                                        <p>https://burgerandlobster.com</p>
+                                        <p><a href="{{item.website}}" target="_blank">{{item.website}}</a></p>
                                     </li>
 
                                 </ul>
                                 <div class="bottom-icons">
-                                    <div class="closed-now">{{item.cuisines|truncatewords:3}}</div>
+                                    <div class="closed-now">{{item.types|truncatewords:3}}</div>
                                     <span class="ti-heart"></span>
                                     <span class="ti-bookmark"></span>
                                 </div>
                             </div>
-                        </a>
                     </div>
                 </div>
                 {% endfor %}

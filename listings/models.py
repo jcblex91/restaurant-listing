@@ -1,4 +1,6 @@
 from django.db import models
+from datetime import datetime
+
 
 class ZomatoRestaurants(models.Model):
     id = models.AutoField(max_length=30, primary_key=True)
@@ -25,9 +27,20 @@ class GoogleRestaurants(models.Model):
     user_ratings_total = models.IntegerField()
     price_level = models.IntegerField(default=None, blank=True)
     vicinity = models.CharField(max_length=400)
+    address = models.CharField(max_length=400,default='-1')
+    place_url = models.URLField(max_length=250,default=None)
     contact = models.CharField(max_length=100,default=None)
     website = models.URLField(max_length=250,default=None)
+    short_url = models.URLField(max_length=250,default=None)
     lat = models.DecimalField(max_digits=9, decimal_places=6, default=None)
     long = models.DecimalField(max_digits=9, decimal_places=6, default=None)
     photo_ref = models.TextField(default=None)
     photo_url = models.TextField(default=None)
+    timings = models.IntegerField(max_length=30,default='-1')
+
+class RestaurantTimings(models.Model):
+    id = models.AutoField(max_length=30, primary_key=True)
+    restaurant_id = models.IntegerField(max_length=30,default=None)
+    day = models.PositiveSmallIntegerField()
+    open_time = models.CharField(max_length=10, default=None)
+    close_time = models.CharField(max_length=10, default=None)
