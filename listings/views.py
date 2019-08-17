@@ -27,57 +27,129 @@ config.read('config.ini')
 # TEST
 
 
+from math import radians, cos, sin, asin, sqrt
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
+
+
+
 
 
 def test(request):
+    center_point = [{'lat': 9.5837689, 'lng': 76.5211771}]
+    test_point = [{'lat': 9.582760, 'lng': 76.521648}]
 
-    timing_obj = RestaurantTimings.objects.filter(restaurant_id=7)
-    todays_weekday = datetime.today().isoweekday()
-    today_open_time = ""
-    today_close_time = ""
+    lat1 = center_point[0]['lat']
+    lon1 = center_point[0]['lng']
+    lat2 = test_point[0]['lat']
+    lon2 = test_point[0]['lng']
 
-    for item_timing_obj in timing_obj:
-        if(item_timing_obj.day == todays_weekday):
-            today_open_time = item_timing_obj.open_time
-            today_close_time = item_timing_obj.close_time
+    radius = 1.00  # in kilometer
 
+    a = haversine(lon1, lat1, lon2, lat2)
 
-    today_open_time = datetime.strptime(today_open_time,'%I:%M %p')
-    today_close_time = datetime.strptime(today_close_time,'%I:%M %p')
-
-
-    open_hour = today_open_time.hour
-    open_minute = today_open_time.minute
-
-    close_hour = today_close_time.hour
-    close_minute = today_close_time.minute
-
-    #
-    # print("Working Hours: "+ str(today_open_time) + " - " + str(today_close_time))
-
-    # print(is_time_between(time(10, 30), time(22, 30)))
-    open = is_time_between(time(open_hour, open_minute), time(close_hour, close_minute))
-    if(open == 'TRUE'):
-        print("Open")
+    print('Distance (km) : ', a)
+    if a <= radius:
+        print('Inside the area')
     else:
-        print("Closed")
+        print('Outside the area')
+
+    return render(request, 'landing.html')
+
 
 def landing(request):
     if request.method == 'POST':
-        print("Submitted")
         form = AggregateForm(request.POST)
         if form.is_valid():
-            print("Passed")
-            lat=request.POST['lat']
-            print("Lat: ",lat)
+            user_lat=request.POST['Latitude']
+            user_long=request.POST['Longitude']
+
+            radius = 10.00  # in kilometer
+            google_restaurants_list = []
+            google_restaurant_dict = {}
+
+
+            google_restaurant_entries = GoogleRestaurants.objects.all()
+            for google_restaurant_entries_item in google_restaurant_entries:
+
+                lat = google_restaurant_entries_item.lat
+                long = google_restaurant_entries_item.long
+
+                distance_from_user = haversine(float(user_long), float(user_lat), float(long), float(lat))
+
+                if(distance_from_user <= radius):
+                    id = google_restaurant_entries_item.id
+                    name = google_restaurant_entries_item.name
+                    types = google_restaurant_entries_item.types
+                    rating = google_restaurant_entries_item.rating
+                    price_level = google_restaurant_entries_item.price_level
+                    vicinity = google_restaurant_entries_item.vicinity
+                    address = google_restaurant_entries_item.address
+                    contact = google_restaurant_entries_item.contact
+                    website = google_restaurant_entries_item.website
+                    place_url = google_restaurant_entries_item.place_url
+                    timings = google_restaurant_entries_item.timings
+
+                    if (len(str(website)) > 38):
+                        website = google_restaurant_entries_item.short_url
+
+                    image = google_restaurant_entries_item.photo_url
+
+                    google_restaurant_dict["distance_from_user"] = distance_from_user
+                    google_restaurant_dict["lat"] = lat
+                    google_restaurant_dict["long"] = long
+                    google_restaurant_dict["name"] = name
+                    google_restaurant_dict["types"] = types
+                    google_restaurant_dict["rating"] = rating
+                    google_restaurant_dict["price_level"] = price_level
+                    if ((len(str(vicinity)) > 39) and (len(str(address))) < len(str(vicinity))):
+                        google_restaurant_dict["vicinity"] = address
+                    else:
+                        google_restaurant_dict["vicinity"] = address
+                    google_restaurant_dict["contact"] = contact
+                    google_restaurant_dict["website"] = website
+                    google_restaurant_dict["image"] = image
+                    maps_api = "http://www.google.com/maps/place/{lat},{long}/@{lat},{long},20z"
+                    if (str(place_url) == '-1'):
+                        maps_api_query = maps_api.format(lat=lat, long=long)
+                        google_restaurant_dict["place_url"] = maps_api_query
+
+                    else:
+                        google_restaurant_dict["place_url"] = place_url
+
+                    # Check If the Restaurant Is OPEN or CLOSED right NOW
+                    if (timings == 0):
+                        google_restaurant_dict["open_now"] = 1
+                    elif (timings == 1):
+                        result_flag = is_restaurant_open(id)
+                        if(result_flag != 2):
+                            google_restaurant_dict["open_now"] = result_flag
+                        else:
+                            google_restaurant_dict["open_now"] = 0
+                    else:
+                        google_restaurant_dict["open_now"] = 2
+
+                    google_restaurants_list.append(google_restaurant_dict.copy())
+                    google_restaurant_dict.clear()
+        print("Count = ",google_restaurants_list.__len__())
+        return render(request, 'index.html', {'restaurants_list': google_restaurants_list})
     else:
         form = AggregateForm()
-    return render(request, 'landing.html', {'form': form})
-
-
-
-
-
+        return render(request, 'landing.html', {'form': form})
 
 def ZomatoCollect(request):
     lat = 12.9726518
@@ -196,7 +268,11 @@ def home(request):
         if(timings == 0):
             google_restaurant_dict["open_now"] = 1
         elif(timings == 1):
-            google_restaurant_dict["open_now"] = is_restaurant_open(id)
+            result_flag = is_restaurant_open(id)
+            if (result_flag != 2):
+                google_restaurant_dict["open_now"] = result_flag
+            else:
+                google_restaurant_dict["open_now"] = 0
         else:
             google_restaurant_dict["open_now"] = 2
 
@@ -661,42 +737,46 @@ def is_restaurant_open(restaurant_id):
 
     # print("Open Time: "+ today_open_time)
     # print("Close Time: "+ today_close_time)
-    today_open_time = datetime.strptime(today_open_time,'%I:%M %p')
-    today_close_time = datetime.strptime(today_close_time,'%I:%M %p')
+    if (today_close_time != ""):
+
+        today_open_time = datetime.strptime(today_open_time,'%I:%M %p')
+        today_close_time = datetime.strptime(today_close_time,'%I:%M %p')
 
 
 
 
-    # open_hour = today_open_time.hour
-    # open_minute = today_open_time.minute
+        # open_hour = today_open_time.hour
+        # open_minute = today_open_time.minute
 
-    open_hour = today_open_time.hour
-    if(open_hour == 0):
-        open_hour = 24
-    open_minute = today_open_time.minute
+        open_hour = today_open_time.hour
+        if(open_hour == 0):
+            open_hour = 24
+        open_minute = today_open_time.minute
 
-    close_hour = today_close_time.hour
-    if(close_hour == 0):
-        close_hour = 24
-    close_minute = today_close_time.minute
+        close_hour = today_close_time.hour
+        if(close_hour == 0):
+            close_hour = 24
+        close_minute = today_close_time.minute
 
-    # print("Open Hr::",open_hour)
-    # print("Open Mts::",open_minute)
-    #
-    # print("Close Hr::",close_hour)
-    # print("Close Mts::",close_minute)
+        # print("Open Hr::",open_hour)
+        # print("Open Mts::",open_minute)
+        #
+        # print("Close Hr::",close_hour)
+        # print("Close Mts::",close_minute)
 
 
-    #
-    # print("Working Hours: "+ str(today_open_time) + " - " + str(today_close_time))
+        #
+        # print("Working Hours: "+ str(today_open_time) + " - " + str(today_close_time))
 
-    # print(is_time_between(time(10, 30), time(22, 30)))
+        # print(is_time_between(time(10, 30), time(22, 30)))
 
-    open = is_time_between(open_hour,open_minute,close_hour,close_minute)
-    if(open == 1):
-        return 1
+        open = is_time_between(open_hour,open_minute,close_hour,close_minute)
+        if(open == 1):
+            return 1
+        else:
+            return 0
     else:
-        return 0
+        return 2
 
 def is_time_between(open_hour,open_minute,close_hour,close_minute):
     current_time = datetime.now().time()
