@@ -9,11 +9,12 @@ from zomathon import ZomatoAPI
 from .models import ZomatoRestaurants,GoogleRestaurants,RestaurantTimings
 from .forms import AggregateForm
 from django.db.models import Q
-
+from twilio.rest import Client
 
 from django.http import HttpResponse
 from datetime import datetime, time
 from django.conf import settings
+from math import radians, cos, sin, asin, sqrt
 
 
 
@@ -27,48 +28,34 @@ config.read('config.ini')
 # TEST
 
 
-from math import radians, cos, sin, asin, sqrt
-
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
-    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
-    return c * r
-
-
-
-
-
 def test(request):
-    center_point = [{'lat': 9.5837689, 'lng': 76.5211771}]
-    test_point = [{'lat': 9.582760, 'lng': 76.521648}]
 
-    lat1 = center_point[0]['lat']
-    lon1 = center_point[0]['lng']
-    lat2 = test_point[0]['lat']
-    lon2 = test_point[0]['lng']
+    pass
 
-    radius = 1.00  # in kilometer
 
-    a = haversine(lon1, lat1, lon2, lat2)
 
-    print('Distance (km) : ', a)
-    if a <= radius:
-        print('Inside the area')
-    else:
-        print('Outside the area')
 
-    return render(request, 'landing.html')
+
+def whatsapp(request):
+    account_sid = config['twilio']['account_ssid']
+    auth_token = config['twilio']['auth_token']
+    client = Client(account_sid, auth_token)
+
+    from_no = 'whatsapp:'+config['twilio']['phone_no']
+    to_no = '+919946782394'
+
+    rest_id = request.GET.get('rest_id', None)
+
+    restaurant = GoogleRestaurants.objects.get(id = rest_id)
+    body = str(restaurant.name + '\n' + "Directions: " +  restaurant.place_url + '\n' + "Contact: " + restaurant.contact)
+
+    message = client.messages.create(
+        from_=from_no,
+        body= body,
+        to='whatsapp:'+to_no
+    )
+    print(message.sid)
+    return HttpResponse('what you want to output to web')
 
 
 def landing(request):
@@ -90,6 +77,8 @@ def landing(request):
                 long = google_restaurant_entries_item.long
 
                 distance_from_user = haversine(float(user_long), float(user_lat), float(long), float(lat))
+                distance_from_user = round(distance_from_user,1)
+
 
                 if(distance_from_user <= radius):
                     id = google_restaurant_entries_item.id
@@ -110,6 +99,7 @@ def landing(request):
                     image = google_restaurant_entries_item.photo_url
 
                     google_restaurant_dict["distance_from_user"] = distance_from_user
+                    google_restaurant_dict["id"] = id
                     google_restaurant_dict["lat"] = lat
                     google_restaurant_dict["long"] = long
                     google_restaurant_dict["name"] = name
@@ -149,7 +139,7 @@ def landing(request):
         return render(request, 'index.html', {'restaurants_list': google_restaurants_list})
     else:
         form = AggregateForm()
-        return render(request, 'landing.html', {'form': form})
+        return render(request, 'landing_test.html', {'form': form})
 
 def ZomatoCollect(request):
     lat = 12.9726518
@@ -243,6 +233,7 @@ def home(request):
 
         image = google_restaurant_entries_item.photo_url
 
+        google_restaurant_dict["id"] = id
         google_restaurant_dict["lat"] = lat
         google_restaurant_dict["long"] = long
         google_restaurant_dict["name"] = name
@@ -725,7 +716,8 @@ def bitly_url_parse(url):
 
 def is_restaurant_open(restaurant_id):
     timing_obj = RestaurantTimings.objects.filter(restaurant_id=restaurant_id)
-    todays_weekday = datetime.today().isoweekday()
+    todays_weekday = datetime.today().weekday()
+    todays_weekday = todays_weekday
     today_open_time = ""
     today_close_time = ""
 
@@ -820,7 +812,20 @@ def is_time_between(open_hour,open_minute,close_hour,close_minute):
                     return 1
 
 
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
 
-
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
 
 

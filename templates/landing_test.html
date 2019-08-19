@@ -11,43 +11,58 @@
 <style>
   .reverse-geo-controls {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
   }
 </style>
-<div style="display: none;">
-  <input id="reverse-demo-ignored"/>
-</div>
+{% load widget_tweaks %}
+<h1 align="center">Restaurant Listing</h1>
 <form method="post" novalidate>
-    {% csrf_token %}
-  <div class="reverse-geo-controls">
-  <div class="form-group" style="flex-grow: 1; margin-right: 8px;">
-  <label for="reverse-geo-lat">Latitude</label>
-  <input id="reverse-geo-lat" class="form-control" placeholder="try 48.87"/>
-  </div>
-  <div class="form-group" style="flex-grow: 1; margin-left: 8px; margin-right: 8px;">
-  <label for="reverse-geo-lng">Longitude</label>
-  <input id="reverse-geo-lng" class="form-control" placeholder="try 2.31"/>
-  </div>
-</div>
-  <div class="form-group">
-    <label for="reverse-address">Address</label>
-    <input type="text" class="form-control" id="reverse-address" placeholder="Street number and name" />
-  </div>
-  <div class="form-group">
-    <label for="reverse-town">City*</label>
-    <input type="text" class="form-control" id="reverse-town" placeholder="City">
-  </div>
-  <div class="form-group">
-    <label for="reverse-zip">ZIP code*</label>
-    <input type="text" class="form-control" id="reverse-zip" placeholder="ZIP code">
-  </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
+  {% csrf_token %}
+
+  {% for hidden_field in form.hidden_fields %}
+    {{ hidden_field }}
+  {% endfor %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">
+      {% for error in form.non_field_errors %}
+        {{ error }}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+      <div class="reverse-geo-controls">
+  {% for field in form.visible_fields %}
+    <div class="form-group">
+      {{ field.label_tag }}
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+          {% render_field field class="form-control is-invalid" %}
+          {% for error in field.errors %}
+            <div class="invalid-feedback">
+              {{ error }}
+            </div>
+          {% endfor %}
+        {% else %}
+          {% render_field field class="form-control is-valid" %}
+        {% endif %}
+      {% else %}
+        {% render_field field class="form-control" %}
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+      {% endif %}
+    </div>
+  {% endfor %}
+    </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
 </form>
-  <div class="form-group" style="margin-left: 8px;">
-    <button id="reverse-locate-me" class="btn btn-black" style="width: 150px;">Locate me</button>
-  </div>
+<br>
+<button id="reverse-locate-me" class="btn btn-primary">Locate me</button>
 <script src="https://cdn.jsdelivr.net/algoliasearch/3.31/algoliasearchLite.min.js"></script>
 <script>
 (function() {
@@ -58,17 +73,17 @@
     var suggestion = hits[0];
 
     if (suggestion && suggestion.locale_names && suggestion.city) {
-      document.querySelector('#reverse-address').value = suggestion.locale_names.default[0] || '';
-      document.querySelector('#reverse-town').value = suggestion.city.default[0] || '';
-      document.querySelector('#reverse-zip').value = (suggestion.postcode || [])[0] || '';
+      document.querySelector('#id_Address').value = suggestion.locale_names.default[0] || '';
+      document.querySelector('#id_City').value = suggestion.city.default[0] || '';
+      document.querySelector('#id_Zip').value = (suggestion.postcode || [])[0] || '';
     }
   }
 
   var lat, lng;
 
   var $button = document.querySelector('#reverse-locate-me');
-  var $latInput = document.querySelector('#reverse-geo-lat');
-  var $lngInput = document.querySelector('#reverse-geo-lng');
+  var $latInput = document.querySelector('#id_Latitude');
+  var $lngInput = document.querySelector('#id_Longitude');
 
   $latInput.addEventListener('change', function(e) {
     try {
@@ -121,6 +136,5 @@
   });
 })();
 </script>
-
 </body>
 </html>

@@ -62,3 +62,34 @@ class AggregateForm(forms.Form):
 
         if not Latitude and not Longitude :
             raise forms.ValidationError('Cannot be left Blank!')
+
+class WhatsappForm(forms.Form):
+    ID = forms.CharField(
+        max_length=30,
+        widget=forms.TextInput(
+            attrs={
+                'style': 'border-color: blue;',
+                'placeholder': 'Write your name here'
+            }
+        )
+    )
+    Whatsapp = forms.CharField(
+        max_length=30,
+        widget=forms.TextInput(
+            attrs={
+                'style': 'border-color: blue;',
+                'placeholder': 'Write your name here'
+            }
+        )
+    )
+
+
+
+
+    def clean(self):
+        cleaned_data = super(WhatsappForm, self).clean()
+        ID = cleaned_data.get('ID')
+        Whatsapp = cleaned_data.get('Whatsapp')
+
+        if not ID and not Whatsapp :
+            raise forms.ValidationError('Cannot be left Blank!')

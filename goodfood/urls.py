@@ -16,6 +16,7 @@ urlpatterns = [
     url(r'^google-collection', views.GoogleCollection, name='google-collection'),
     url(r'^landing', views.landing, name='landing'),
     url(r'^test', views.test, name='test'),
+    url(r'^ajax/whatsapp/$', views.whatsapp, name='whatsapp'),
     url(r'^admin/', admin.site.urls),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

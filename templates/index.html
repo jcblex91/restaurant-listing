@@ -20,10 +20,13 @@
     <link rel="stylesheet" href="{% static 'index/css/simple-line-icons.css' %}">
     <!-- Themify Icon -->
     <link rel="stylesheet" href="{% static 'index/css/themify-icons.css' %}">
+    <!-- Font Awesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <!-- Hover Effects -->
     <link rel="stylesheet" href="{% static 'index/css/set1.css' %}">
     <!-- Main CSS -->
     <link rel="stylesheet" href="{% static 'index/css/style.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
     <!--============================= FEATURED PLACES =============================-->
@@ -52,7 +55,7 @@
                                 <p>Not Available</p>
                                 {% endif %}
                                 <span>• </span>
-                                <p>{{item.distance_from_user}}</p> <span> • </span>
+                                <p>{{item.distance_from_user}} kms away</p> <span> • </span>
                                 {% if item.price_level >= 4 %}
                                     <p><span>$$$$</span>$</p>
                                 {% elif item.price_level >= 3 %}
@@ -76,8 +79,8 @@
                                 </ul>
                                 <div class="bottom-icons">
                                     <div class="closed-now">{{item.types|truncatewords:3}}</div>
-                                    <span class="ti-heart"></span>
-                                    <span class="ti-bookmark"></span>
+                                    <span class="ti-heart" data-toggle="modal" data-book-id="{{item.id}}" data-target="#my_modal"></span>
+                                    <span class="fa fa-whatsapp" style="color:green;" data-id = "{{item.id}}"></span>
                                 </div>
                             </div>
                     </div>
@@ -118,6 +121,102 @@
             };
         });
     </script>
+
+
+<!-- Modal -->
+<div class="modal" id="my_modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+          <h4 class="modal-title">Modal header</h4>
+      </div>
+      <div class="modal-body">
+          {% load widget_tweaks %}
+<h1 align="center">Restaurant Listing</h1>
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  {% for hidden_field in form.hidden_fields %}
+    {{ hidden_field }}
+  {% endfor %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">
+      {% for error in form.non_field_errors %}
+        {{ error }}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+      <div class="reverse-geo-controls">
+  {% for field in form.visible_fields %}
+    <div class="form-group">
+      {{ field.label_tag }}
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+          {% render_field field class="form-control is-invalid" %}
+          {% for error in field.errors %}
+            <div class="invalid-feedback">
+              {{ error }}
+            </div>
+          {% endfor %}
+        {% else %}
+          {% render_field field class="form-control is-valid" %}
+        {% endif %}
+      {% else %}
+        {% render_field field class="form-control" %}
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+      {% endif %}
+    </div>
+  {% endfor %}
+    </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+        <input type="text" name="bookId" value=""/>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    //triggered when modal is about to be shown
+$('#my_modal').on('show.bs.modal', function(e) {
+
+    //get data-id attribute of the clicked element
+    var bookId = $(e.relatedTarget).data('book-id');
+
+    //populate the textbox
+    $(e.currentTarget).find('input[name="bookId"]').val(bookId);
+});
+
+
+</script>
+<script>
+$('.fa-whatsapp').click(function(){
+
+    var rest_id = $(this).attr("data-id")
+    console.log(rest_id)
+
+
+    $.ajax({
+       headers: {'X-CSRFToken': '{{ csrf_token }}'},
+  url: '/ajax/whatsapp/',
+  data: {'rest_id' : rest_id},
+  dataType: "json"
+});
+
+
+
+});
+</script>
 
 </body>
 </html>
